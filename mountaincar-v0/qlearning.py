@@ -2,19 +2,20 @@ import gym
 import numpy as np
 import random
 import os
+import matplotlib.pyplot as plt
 
 # Create environment
-env = gym.make("MountainCar-v0", render_mode="human")
+env = gym.make("MountainCar-v0", render_mode="rgb_array")
 env.reset()
 
 # Hyperparameters
 LEARNING_RATE = 0.1
 DISCOUNT = 0.95
 EPISODES = 25000
-SHOW_EVERY = 2000
+SHOW_EVERY = 500
 
 # Exploration settings
-epsilon = 0.4
+epsilon = 0.5  # Exploration rate
 START_EPSILON_DECAYING = 1
 END_EPSILON_DECAYING = EPISODES // 2
 epsilon_decay_value = epsilon / (END_EPSILON_DECAYING - START_EPSILON_DECAYING)
@@ -39,12 +40,16 @@ else:
     start_episode = 0
     print("Starting fresh...")
 
+ep_rewards = []
+aggr_ep_rewards = {'ep': [], 'avg': [], 'min': [], 'max': []}
+
 def get_discrete_state(state):
     discrete_state = (state - env.observation_space.low) / discrete_os_win_size
     return tuple(discrete_state.astype(int))
 
 # Start training loop from last episode
 for episode in range(start_episode, EPISODES):
+    episode_reward = 0
     if episode % SHOW_EVERY == 0:
         print(f"Episode: {episode}, epsilon: {epsilon:.2f}")
         render = True
@@ -63,6 +68,7 @@ for episode in range(start_episode, EPISODES):
             action = np.argmax(q_table[discrete_state])  # Exploit
 
         new_state, reward, terminated, truncated, _ = env.step(action)
+        episode_reward += reward
         done = terminated or truncated
         new_discrete_state = get_discrete_state(new_state)
 
@@ -86,9 +92,27 @@ for episode in range(start_episode, EPISODES):
         epsilon -= epsilon_decay_value
 
     # Save progress periodically
-    if episode % 100 == 0:
+    if episode % 10 == 0:
+        np.save(f"qtables/q_table_{episode}.npy", q_table)
         np.save(Q_TABLE_FILE, q_table)
         np.save(EPISODE_FILE, episode)
         np.save(EPSILON_FILE, epsilon)
+    
+    ep_rewards.append(episode_reward)
+    if not episode % SHOW_EVERY:
+        average_reward = sum(ep_rewards[-SHOW_EVERY:]) / len(ep_rewards[-SHOW_EVERY:])
+        aggr_ep_rewards['ep'].append(episode)
+        aggr_ep_rewards['avg'].append(average_reward)
+        aggr_ep_rewards['min'].append(min(ep_rewards[-SHOW_EVERY:]))
+        aggr_ep_rewards['max'].append(max(ep_rewards[-SHOW_EVERY:]))
+        print(f"Episode: {episode}, Avg: {average_reward:.2f}, Min: {min(ep_rewards[-SHOW_EVERY:])}, Max: {max(ep_rewards[-SHOW_EVERY:])}")
 
 env.close()
+
+plt.plot(aggr_ep_rewards['ep'], aggr_ep_rewards['avg'], label='avg')
+plt.plot(aggr_ep_rewards['ep'], aggr_ep_rewards['min'], label='min')
+plt.plot(aggr_ep_rewards['ep'], aggr_ep_rewards['max'], label='max')
+plt.legend(loc='upper left')
+plt.savefig("training_rewards_plot.png")
+
+plt.show()

@@ -2,3 +2,4 @@ gym==0.26.2
 gym-notices==0.0.8
 numpy==1.24.4
 pygame==2.6.1
+matplotlib==3.7.2
