@@ -7,8 +7,7 @@ import matplotlib.pyplot as plt
 # Create environment
 env = gym.make("MountainCar-v0", render_mode="rgb_array")
 env.reset()
-
-# Hyperparameters
+ 
 LEARNING_RATE = 0.1
 DISCOUNT = 0.95
 EPISODES = 25000
