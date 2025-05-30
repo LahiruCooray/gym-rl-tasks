@@ -111,6 +111,8 @@ for episode in range(HM_EPISODES):
             action = np.random.randint(0, 4)
 
         player.action(action)
+        enemy.move()  # Enemy moves randomly
+        food.move()
 
         # Reward assignment
         if player.x == enemy.x and player.y == enemy.y:
